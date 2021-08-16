@@ -208,10 +208,15 @@ fn add_color_stop(ctx: CallContext) -> Result<JsUndefined> {
   let canvas_gradient = ctx.env.unwrap::<Pattern>(&this)?;
   let index: f64 = ctx.get::<JsNumber>(0)?.try_into()?;
   let color_str = ctx.get::<JsString>(1)?.into_utf8()?;
-  let mut parser_input = ParserInput::new(color_str.as_str()?);
+  let color_str = color_str.as_str()?;
+  let mut parser_input = ParserInput::new(color_str);
   let mut parser = Parser::new(&mut parser_input);
-  let color = CSSColor::parse(&mut parser)
-    .map_err(|e| Error::new(Status::InvalidArg, format!("Invalid color {:?}", e)))?;
+  let color = CSSColor::parse(&mut parser).map_err(|e| {
+    Error::new(
+      Status::InvalidArg,
+      format!("Parse color [{}] error: {:?}", color_str, e),
+    )
+  })?;
   let skia_color = match color {
     CSSColor::CurrentColor => {
       return Err(Error::new(

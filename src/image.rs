@@ -3,6 +3,7 @@ use std::slice;
 
 use napi::*;
 
+use crate::ctx::ImageOrCanvas;
 use crate::sk::Bitmap;
 
 #[derive(Debug, Clone)]
@@ -193,14 +194,14 @@ fn image_constructor(ctx: CallContext) -> Result<JsUndefined> {
   };
   let mut this = ctx.this_unchecked::<JsObject>();
   this.set_named_property("_src", ctx.env.get_undefined()?)?;
-  ctx.env.wrap(&mut this, js_image)?;
+  ctx.env.wrap(&mut this, ImageOrCanvas::Image(js_image))?;
   ctx.env.get_undefined()
 }
 
 #[js_function]
 fn get_width(ctx: CallContext) -> Result<JsNumber> {
   let this = ctx.this_unchecked::<JsObject>();
-  let image = ctx.env.unwrap::<Image>(&this)?;
+  let image = ctx.env.unwrap::<ImageOrCanvas>(&this)?.get_image().unwrap();
 
   ctx
     .env
@@ -210,7 +211,7 @@ fn get_width(ctx: CallContext) -> Result<JsNumber> {
 #[js_function]
 fn get_natural_width(ctx: CallContext) -> Result<JsNumber> {
   let this = ctx.this_unchecked::<JsObject>();
-  let image = ctx.env.unwrap::<Image>(&this)?;
+  let image = ctx.env.unwrap::<ImageOrCanvas>(&this)?.get_image().unwrap();
 
   ctx
     .env
@@ -221,7 +222,7 @@ fn get_natural_width(ctx: CallContext) -> Result<JsNumber> {
 fn set_width(ctx: CallContext) -> Result<JsUndefined> {
   let width = ctx.get::<JsNumber>(0)?.get_double()?;
   let this = ctx.this_unchecked::<JsObject>();
-  let image = ctx.env.unwrap::<Image>(&this)?;
+  let image = ctx.env.unwrap::<ImageOrCanvas>(&this)?.get_image().unwrap();
   if (width - image.width).abs() > f64::EPSILON {
     image.width = width;
     image.need_regenerate_bitmap = true;
@@ -232,7 +233,7 @@ fn set_width(ctx: CallContext) -> Result<JsUndefined> {
 #[js_function]
 fn get_height(ctx: CallContext) -> Result<JsNumber> {
   let this = ctx.this_unchecked::<JsObject>();
-  let image = ctx.env.unwrap::<Image>(&this)?;
+  let image = ctx.env.unwrap::<ImageOrCanvas>(&this)?.get_image().unwrap();
 
   ctx.env.create_double(if image.height <= 0.0 {
     0.0
@@ -244,7 +245,7 @@ fn get_height(ctx: CallContext) -> Result<JsNumber> {
 #[js_function]
 fn get_natural_height(ctx: CallContext) -> Result<JsNumber> {
   let this = ctx.this_unchecked::<JsObject>();
-  let image = ctx.env.unwrap::<Image>(&this)?;
+  let image = ctx.env.unwrap::<ImageOrCanvas>(&this)?.get_image().unwrap();
 
   ctx
     .env
@@ -255,7 +256,7 @@ fn get_natural_height(ctx: CallContext) -> Result<JsNumber> {
 fn set_height(ctx: CallContext) -> Result<JsUndefined> {
   let height = ctx.get::<JsNumber>(0)?.get_double()?;
   let this = ctx.this_unchecked::<JsObject>();
-  let image = ctx.env.unwrap::<Image>(&this)?;
+  let image = ctx.env.unwrap::<ImageOrCanvas>(&this)?.get_image().unwrap();
   if (image.height - height).abs() > f64::EPSILON {
     image.height = height;
     image.need_regenerate_bitmap = true;
@@ -266,7 +267,7 @@ fn set_height(ctx: CallContext) -> Result<JsUndefined> {
 #[js_function]
 fn get_complete(ctx: CallContext) -> Result<JsBoolean> {
   let this = ctx.this_unchecked::<JsObject>();
-  let image = ctx.env.unwrap::<Image>(&this)?;
+  let image = ctx.env.unwrap::<ImageOrCanvas>(&this)?.get_image().unwrap();
 
   ctx.env.get_boolean(image.complete)
 }
@@ -274,7 +275,7 @@ fn get_complete(ctx: CallContext) -> Result<JsBoolean> {
 #[js_function]
 fn get_alt(ctx: CallContext) -> Result<JsString> {
   let this = ctx.this_unchecked::<JsObject>();
-  let image = ctx.env.unwrap::<Image>(&this)?;
+  let image = ctx.env.unwrap::<ImageOrCanvas>(&this)?.get_image().unwrap();
 
   ctx.env.create_string(image.alt.as_str())
 }
@@ -282,7 +283,7 @@ fn get_alt(ctx: CallContext) -> Result<JsString> {
 #[js_function(1)]
 fn set_alt(ctx: CallContext) -> Result<JsUndefined> {
   let this = ctx.this_unchecked::<JsObject>();
-  let mut image = ctx.env.unwrap::<Image>(&this)?;
+  let image = ctx.env.unwrap::<ImageOrCanvas>(&this)?.get_image().unwrap();
   let arg = ctx.get::<JsString>(0)?.into_utf8()?;
   image.alt = arg.as_str()?.to_string();
 
@@ -300,7 +301,7 @@ fn set_src(ctx: CallContext) -> Result<JsUndefined> {
   let mut this = ctx.this_unchecked::<JsObject>();
   let src_arg = ctx.get::<JsBuffer>(0)?;
   let src_data = src_arg.into_value()?;
-  let image = ctx.env.unwrap::<Image>(&this)?;
+  let image = ctx.env.unwrap::<ImageOrCanvas>(&this)?.get_image().unwrap();
 
   let length = (&src_data).len();
   let data_ref: &[u8] = &src_data;

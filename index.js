@@ -197,6 +197,12 @@ function createCanvas(width, height, flag) {
   return canvasElement
 }
 
+class Canvas {
+  constructor(width, height, flag) {
+    return createCanvas(width, height, flag)
+  }
+}
+
 if (!process.env.DISABLE_SYSTEM_FONTS_LOAD) {
   GlobalFontsSingleton.loadSystemFonts()
   FamilyNamesSet = JSON.parse(GlobalFontsSingleton._families)
@@ -207,6 +213,7 @@ function convertSVGTextToPath(input) {
 }
 
 module.exports = {
+  Canvas,
   createCanvas,
   Path2D,
   ImageData,

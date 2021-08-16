@@ -314,10 +314,14 @@ mod ffi {
     pub fn skiac_canvas_draw_surface_rect(
       canvas: *mut skiac_canvas,
       surface: *mut skiac_surface,
-      x: f32,
-      y: f32,
-      w: f32,
-      h: f32,
+      sx: f32,
+      sy: f32,
+      sw: f32,
+      sh: f32,
+      dx: f32,
+      dy: f32,
+      dw: f32,
+      dh: f32,
       filter_quality: i32,
     );
 
@@ -1939,14 +1943,30 @@ impl Canvas {
   pub fn draw_surface_rect(
     &mut self,
     surface: &Surface,
-    x: f32,
-    y: f32,
-    w: f32,
-    h: f32,
+    sx: f32,
+    sy: f32,
+    sw: f32,
+    sh: f32,
+    dx: f32,
+    dy: f32,
+    dw: f32,
+    dh: f32,
     filter_quality: FilterQuality,
   ) {
     unsafe {
-      ffi::skiac_canvas_draw_surface_rect(self.0, surface.ptr, x, y, w, h, filter_quality as i32);
+      ffi::skiac_canvas_draw_surface_rect(
+        self.0,
+        surface.ptr,
+        sx,
+        sy,
+        sw,
+        sh,
+        dx,
+        dy,
+        dw,
+        dh,
+        filter_quality as i32,
+      );
     }
   }
 

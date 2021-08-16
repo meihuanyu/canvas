@@ -231,7 +231,14 @@ extern "C"
   void skiac_canvas_draw_surface_rect(
       skiac_canvas *c_canvas,
       skiac_surface *c_surface,
-      float x, float y, float w, float h,
+      float sx,
+      float sy,
+      float sw,
+      float sh,
+      float dx,
+      float dy,
+      float dw,
+      float dh,
       int filter_quality);
   void skiac_canvas_get_line_metrics_or_draw_text(
       const char *text,

@@ -364,6 +364,38 @@ test('drawImage-svg without width height should be empty image', async (t) => {
   t.deepEqual(outputData.data, Buffer.alloc(outputData.width * outputData.height * 4, 0))
 })
 
+test('draw-image-svg-noto-emoji', async (t) => {
+  const { ctx } = t.context
+  const filePath = './notoemoji-person.svg'
+  const file = await promises.readFile(join(__dirname, filePath))
+  const image = new Image()
+  image.src = file
+  ctx.drawImage(image, 0, 0)
+  await snapshotImage(t)
+})
+
+test('drawImage-another-Canvas', async (t) => {
+  const { ctx } = t.context
+
+  ctx.fillStyle = 'hotpink'
+  ctx.fillRect(10, 10, 100, 100)
+
+  const anotherCanvas = createCanvas(200, 200)
+  const anotherContext = anotherCanvas.getContext('2d')
+  anotherContext.beginPath()
+  anotherContext.ellipse(80, 80, 50, 75, Math.PI / 4, 0, 2 * Math.PI)
+  anotherContext.stroke()
+
+  // Draw the ellipse's line of reflection
+  anotherContext.beginPath()
+  anotherContext.setLineDash([5, 5])
+  anotherContext.moveTo(10, 150)
+  anotherContext.lineTo(150, 10)
+  anotherContext.stroke()
+  ctx.drawImage(anotherCanvas, 150, 150)
+  await snapshotImage(t)
+})
+
 test('ellipse', async (t) => {
   const { ctx } = t.context
   // Draw the ellipse

@@ -1,6 +1,7 @@
 use napi::*;
 
-use crate::image::{Image, ImageData};
+use crate::ctx::ImageOrCanvas;
+use crate::image::ImageData;
 use crate::pattern::Pattern;
 use crate::sk::*;
 
@@ -28,7 +29,11 @@ pub fn canvas_pattern_constructor(ctx: CallContext) -> Result<JsUndefined> {
   let mut this: JsObject = ctx.this_unchecked();
   let bitmap = match image_kind {
     ImageKind::Image => {
-      let native_object = ctx.env.unwrap::<Image>(&image_or_data)?;
+      let native_object = ctx
+        .env
+        .unwrap::<ImageOrCanvas>(&image_or_data)?
+        .get_image()
+        .unwrap();
       if let Some(bitmap) = native_object.bitmap.as_ref() {
         bitmap.bitmap
       } else {

@@ -290,15 +290,21 @@ extern "C"
   void skiac_canvas_draw_surface_rect(
       skiac_canvas *c_canvas,
       skiac_surface *c_surface,
-      float x, float y, float w, float h,
+      float sx,
+      float sy,
+      float sw,
+      float sh,
+      float dx,
+      float dy,
+      float dw,
+      float dh,
       int filter_quality)
   {
     auto image = SURFACE_CAST->makeImageSnapshot();
-    SkPaint paint;
-    auto src = SkRect::MakeXYWH(0, 0, image->width(), image->height());
-    auto dst = SkRect::MakeXYWH(x, y, w, h);
+    auto src = SkRect::MakeXYWH(sx, sy, sw, sh);
+    auto dst = SkRect::MakeXYWH(dx, dy, dw, dh);
     const auto sampling = SkSamplingOptions(SkCubicResampler{1 / 3.0f, 1 / 3.0f});
-    CANVAS_CAST->drawImageRect(image, src, dst, sampling, &paint, SkCanvas::kFast_SrcRectConstraint);
+    CANVAS_CAST->drawImageRect(image, src, dst, sampling, nullptr, SkCanvas::kFast_SrcRectConstraint);
   }
 
   void skiac_canvas_get_line_metrics_or_draw_text(
