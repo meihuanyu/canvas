@@ -496,7 +496,7 @@ impl Context {
     d_width: f32,
     d_height: f32,
   ) -> Result<()> {
-    let bitmap = image.bitmap.as_ref().unwrap().bitmap;
+    let bitmap = image.bitmap.as_ref().unwrap().0.bitmap;
     let paint = self.fill_paint()?;
     if let Some(drop_shadow_paint) = self.drop_shadow_paint(&paint) {
       let surface = &mut self.surface;
@@ -926,8 +926,8 @@ fn draw_image(ctx: CallContext) -> Result<JsUndefined> {
         return ctx.env.get_undefined();
       }
 
-      let image_w = image.bitmap.as_ref().unwrap().width as f32;
-      let image_h = image.bitmap.as_ref().unwrap().height as f32;
+      let image_w = image.bitmap.as_ref().unwrap().0.width as f32;
+      let image_h = image.bitmap.as_ref().unwrap().0.height as f32;
 
       if ctx.length == 3 {
         let dx: f64 = ctx.get::<JsNumber>(1)?.get_double()?;
@@ -1985,6 +1985,9 @@ fn set_shadow_color(ctx: CallContext) -> Result<JsUndefined> {
   let shadow_color_str = shadow_color.as_str()?;
   last_state.shadow_color_string = shadow_color_str.to_owned();
 
+  if shadow_color_str.is_empty() {
+    return ctx.env.get_undefined();
+  }
   let mut parser_input = ParserInput::new(shadow_color_str);
   let mut parser = Parser::new(&mut parser_input);
   let color = CSSColor::parse(&mut parser)

@@ -209,6 +209,9 @@ fn add_color_stop(ctx: CallContext) -> Result<JsUndefined> {
   let index: f64 = ctx.get::<JsNumber>(0)?.try_into()?;
   let color_str = ctx.get::<JsString>(1)?.into_utf8()?;
   let color_str = color_str.as_str()?;
+  if color_str.is_empty() {
+    return ctx.env.get_undefined();
+  }
   let mut parser_input = ParserInput::new(color_str);
   let mut parser = Parser::new(&mut parser_input);
   let color = CSSColor::parse(&mut parser).map_err(|e| {

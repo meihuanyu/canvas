@@ -1,6 +1,8 @@
 use std::mem::ManuallyDrop;
 use std::slice;
+use std::str;
 
+use base64::decode;
 use napi::*;
 
 use crate::ctx::ImageOrCanvas;
@@ -215,7 +217,7 @@ fn get_natural_width(ctx: CallContext) -> Result<JsNumber> {
 
   ctx
     .env
-    .create_double(image.bitmap.as_ref().map(|b| b.width).unwrap_or(0) as f64)
+    .create_double(image.bitmap.as_ref().map(|b| b.0.width).unwrap_or(0) as f64)
 }
 
 #[js_function(1)]
@@ -249,7 +251,7 @@ fn get_natural_height(ctx: CallContext) -> Result<JsNumber> {
 
   ctx
     .env
-    .create_double(image.bitmap.as_ref().map(|b| b.height).unwrap_or(0) as f64)
+    .create_double(image.bitmap.as_ref().map(|b| b.0.height).unwrap_or(0) as f64)
 }
 
 #[js_function(1)]
@@ -326,24 +328,46 @@ fn set_src(ctx: CallContext) -> Result<JsUndefined> {
     let bitmap = Bitmap::from_svg_data(src_data.as_ptr(), length);
     if let Some(b) = bitmap.as_ref() {
       if (image.width - -1.0).abs() < f64::EPSILON {
-        image.width = b.width as f64;
+        image.width = b.0.width as f64;
       }
       if (image.height - -1.0).abs() < f64::EPSILON {
-        image.height = b.height as f64;
+        image.height = b.0.height as f64;
       }
     }
     image.bitmap = bitmap;
   } else {
-    let bitmap = Bitmap::from_buffer(src_data.as_ptr() as *mut u8, length);
-    if (image.width - -1.0).abs() < f64::EPSILON {
-      image.width = bitmap.width as f64;
+    let bitmap = if str::from_utf8(&data_ref[0..10]) == Ok("data:image") {
+      let data_str = str::from_utf8(data_ref)
+        .map_err(|e| Error::new(Status::InvalidArg, format!("Decode data url failed {}", e)))?;
+      if let Some(base64_str) = data_str.split(",").last() {
+        let image_binary = decode(base64_str)
+          .map_err(|e| Error::new(Status::InvalidArg, format!("Decode data url failed {}", e)))?;
+        Some(Bitmap::from_buffer(
+          image_binary.as_ptr() as *mut u8,
+          image_binary.len(),
+        ))
+      } else {
+        None
+      }
+    } else {
+      Some(Bitmap::from_buffer(src_data.as_ptr() as *mut u8, length))
+    };
+    if let Some(ref b) = bitmap {
+      if (image.width - -1.0).abs() < f64::EPSILON {
+        image.width = b.0.width as f64;
+      }
+      if (image.height - -1.0).abs() < f64::EPSILON {
+        image.height = b.0.height as f64;
+      }
     }
-    if (image.height - -1.0).abs() < f64::EPSILON {
-      image.height = bitmap.height as f64;
-    }
-    image.bitmap = Some(bitmap)
+    image.bitmap = bitmap
   }
 
   this.set_named_property("_src", src_data.into_raw())?;
+  let onload = this.get_named_property_unchecked::<JsUnknown>("onload")?;
+  if onload.get_type()? == ValueType::Function {
+    let onload_func = unsafe { onload.cast::<JsFunction>() };
+    onload_func.call_without_args(Some(&this))?;
+  }
   ctx.env.get_undefined()
 }

@@ -4,6 +4,7 @@ use std::ffi::{c_void, CStr, CString};
 use std::ops::{Deref, DerefMut};
 use std::os::raw::c_char;
 use std::ptr;
+use std::rc::Rc;
 use std::slice;
 use std::str::FromStr;
 
@@ -101,6 +102,14 @@ mod ffi {
   #[derive(Copy, Clone, Debug)]
   pub struct skiac_bitmap {
     _unused: [u8; 0],
+  }
+
+  #[repr(C)]
+  #[derive(Debug, Clone, Copy)]
+  pub struct skiac_bitmap_info {
+    pub bitmap: *mut skiac_bitmap,
+    pub width: i32,
+    pub height: i32,
   }
 
   #[repr(C)]
@@ -252,6 +261,8 @@ mod ffi {
       flag: u32,
       sk_data: *mut skiac_sk_data,
     );
+
+    pub fn skiac_surface_get_bitmap(surface: *mut skiac_surface, info: *mut skiac_bitmap_info);
 
     // SkCanvas
     pub fn skiac_canvas_clear(canvas: *mut skiac_canvas, color: u32);
@@ -617,14 +628,15 @@ mod ffi {
 
     pub fn skiac_sk_data_destroy(c_data: *mut skiac_data);
 
-    pub fn skiac_bitmap_make_from_buffer(ptr: *mut u8, size: usize) -> *mut skiac_bitmap;
+    pub fn skiac_bitmap_make_from_buffer(ptr: *mut u8, size: usize, info: *mut skiac_bitmap_info);
 
     pub fn skiac_bitmap_make_from_svg(
       data: *const u8,
       size: usize,
       width: f32,
       height: f32,
-    ) -> *mut skiac_bitmap;
+      info: *mut skiac_bitmap_info,
+    );
 
     pub fn skiac_bitmap_make_from_image_data(
       ptr: *mut u8,
@@ -636,9 +648,9 @@ mod ffi {
       alpha_type: i32,
     ) -> *mut skiac_bitmap;
 
-    pub fn skiac_bitmap_get_width(c_bitmap: *mut skiac_bitmap) -> u32;
+    pub fn skiac_bitmap_get_width(c_bitmap: *mut skiac_bitmap) -> usize;
 
-    pub fn skiac_bitmap_get_height(c_bitmap: *mut skiac_bitmap) -> u32;
+    pub fn skiac_bitmap_get_height(c_bitmap: *mut skiac_bitmap) -> usize;
 
     pub fn skiac_bitmap_get_shader(
       c_bitmap: *mut skiac_bitmap,
@@ -1541,6 +1553,17 @@ impl Surface {
   #[inline]
   pub(crate) fn reference(&self) -> SurfaceRef {
     SurfaceRef(self.ptr)
+  }
+
+  #[inline]
+  pub(crate) fn get_bitmap(&self) -> Bitmap {
+    let mut bitmap_info = ffi::skiac_bitmap_info {
+      bitmap: ptr::null_mut(),
+      width: 0,
+      height: 0,
+    };
+    unsafe { ffi::skiac_surface_get_bitmap(self.ptr, &mut bitmap_info) };
+    Bitmap(bitmap_info)
   }
 }
 
@@ -2935,40 +2958,38 @@ impl Drop for ImageFilter {
   }
 }
 
+#[repr(transparent)]
 #[derive(Debug)]
-pub struct Bitmap {
-  pub width: usize,
-  pub height: usize,
-  pub bitmap: *mut ffi::skiac_bitmap,
-}
+pub(crate) struct Bitmap(pub(crate) ffi::skiac_bitmap_info);
 
 impl Bitmap {
   #[inline]
   pub fn from_buffer(ptr: *mut u8, size: usize) -> Self {
+    let mut bitmap_info = ffi::skiac_bitmap_info {
+      bitmap: ptr::null_mut(),
+      width: 0,
+      height: 0,
+    };
     unsafe {
-      let bitmap = ffi::skiac_bitmap_make_from_buffer(ptr, size);
-
-      Bitmap {
-        width: ffi::skiac_bitmap_get_width(bitmap) as usize,
-        height: ffi::skiac_bitmap_get_height(bitmap) as usize,
-        bitmap,
-      }
+      ffi::skiac_bitmap_make_from_buffer(ptr, size, &mut bitmap_info);
+      Bitmap(bitmap_info)
     }
   }
 
   #[inline]
   pub fn from_svg_data(data: *const u8, size: usize) -> Option<Self> {
+    let mut bitmap_info = ffi::skiac_bitmap_info {
+      bitmap: ptr::null_mut(),
+      width: 0,
+      height: 0,
+    };
     unsafe {
-      let bitmap = ffi::skiac_bitmap_make_from_svg(data, size, -1.0, -1.0);
+      ffi::skiac_bitmap_make_from_svg(data, size, -1.0, -1.0, &mut bitmap_info);
 
-      if bitmap.is_null() {
+      if bitmap_info.bitmap.is_null() {
         return None;
       }
-      Some(Bitmap {
-        width: ffi::skiac_bitmap_get_width(bitmap) as usize,
-        height: ffi::skiac_bitmap_get_height(bitmap) as usize,
-        bitmap,
-      })
+      Some(Bitmap(bitmap_info))
     }
   }
 
@@ -2979,17 +3000,18 @@ impl Bitmap {
     width: f32,
     height: f32,
   ) -> Option<Self> {
+    let mut bitmap_info = ffi::skiac_bitmap_info {
+      bitmap: ptr::null_mut(),
+      width: 0,
+      height: 0,
+    };
     unsafe {
-      let bitmap = ffi::skiac_bitmap_make_from_svg(data, size, width, height);
+      ffi::skiac_bitmap_make_from_svg(data, size, width, height, &mut bitmap_info);
 
-      if bitmap.is_null() {
+      if bitmap_info.bitmap.is_null() {
         return None;
       }
-      Some(Bitmap {
-        width: width as usize,
-        height: height as usize,
-        bitmap,
-      })
+      Some(Bitmap(bitmap_info))
     }
   }
 
@@ -3014,18 +3036,18 @@ impl Bitmap {
         alpha_type as i32,
       )
     };
-    Bitmap {
+    Bitmap(ffi::skiac_bitmap_info {
       bitmap,
-      width: row_bytes,
-      height: size / row_bytes / 4usize,
-    }
+      width: row_bytes as i32,
+      height: (size / row_bytes / 4) as i32,
+    })
   }
 }
 
 impl Drop for Bitmap {
   fn drop(&mut self) {
     unsafe {
-      ffi::skiac_bitmap_destroy(self.bitmap);
+      ffi::skiac_bitmap_destroy(self.0.bitmap);
     }
   }
 }
@@ -3036,6 +3058,7 @@ pub struct ImagePattern {
   pub(crate) repeat_x: TileMode,
   pub(crate) repeat_y: TileMode,
   pub(crate) transform: Transform,
+  pub(crate) bitmap_to_finalize: Option<Rc<Bitmap>>,
 }
 
 impl ImagePattern {

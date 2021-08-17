@@ -122,6 +122,8 @@ CanvasRenderingContext2D.prototype.createPattern = function createPattern(image,
     return pattern
   } else if (image instanceof Image) {
     return new CanvasPattern(image, repetition, 1)
+  } else if (image instanceof CanvasElement || image instanceof SVGCanvas) {
+    return new CanvasPattern(image, repetition, 2)
   }
   throw TypeError('Image should be instance of ImageData or Image')
 }
