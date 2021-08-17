@@ -1,5 +1,6 @@
 import { promises as fs } from 'fs'
 import { join } from 'path'
+import { arch } from 'os'
 
 import PNG from '@jimp/png'
 import JPEG from '@jimp/jpeg'
@@ -7,12 +8,13 @@ import { ExecutionContext } from 'ava'
 
 const png = PNG()
 const jpeg = JPEG()
+const ARCH_NAME = arch()
 
 export async function snapshotImage<C>(
   t: ExecutionContext<C>,
   context = t.context,
   type: 'png' | 'jpeg' | 'webp' = 'png',
-  differentRatio = 0.015,
+  differentRatio = ARCH_NAME === 'x64' ? 0.015 : 0.05,
 ) {
   // @ts-expect-error
   const { canvas } = context
