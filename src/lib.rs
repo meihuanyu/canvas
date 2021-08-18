@@ -293,7 +293,7 @@ fn to_data_url(ctx: CallContext) -> Result<JsString> {
   };
   let data_ref = get_data_ref(&ctx, mime.as_str(), quality)?;
   let mut output = format!("data:{};base64,", &mime);
-  base64::encode_config_buf(data_ref.slice(), base64::URL_SAFE, &mut output);
+  base64::encode_config_buf(data_ref.slice(), base64::STANDARD, &mut output);
   ctx.env.create_string_from_std(output)
 }
 
