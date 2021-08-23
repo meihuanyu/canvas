@@ -92,22 +92,21 @@ impl CanvasGradient {
         &mut conic_gradient.base.colors,
       ),
     };
-    if let Ok(pos) = stops.binary_search_by(|o| o.partial_cmp(&offset).unwrap()) {
-      colors[pos] = color;
-    } else if stops.is_empty() {
+    if stops.last().map(|l| l < &offset).unwrap_or(true) {
       stops.push(offset);
       colors.push(color);
     } else {
       let mut index = 0usize;
       // insert it in sorted order
       for (idx, val) in stops.iter().enumerate() {
-        index = idx;
-        if val > &offset {
+        if val >= &offset {
           break;
+        } else {
+          index = idx + 1;
         }
       }
-      stops.insert(index + 1, offset);
-      colors.insert(index + 1, color);
+      stops.insert(index, offset);
+      colors.insert(index, color);
     }
   }
 
@@ -233,4 +232,27 @@ fn add_color_stop(ctx: CallContext) -> Result<JsUndefined> {
     canvas_gradient.add_color_stop(index as f32, skia_color);
   }
   ctx.env.get_undefined()
+}
+
+#[test]
+fn test_add_color_stop() {
+  let mut linear_gradient = CanvasGradient::create_linear_gradient(0.0, 0.0, 0.0, 77.0);
+  linear_gradient.add_color_stop(1.0, Color::from_rgba(0, 128, 128, 255));
+  linear_gradient.add_color_stop(0.6, Color::from_rgba(0, 255, 255, 255));
+  linear_gradient.add_color_stop(0.3, Color::from_rgba(176, 199, 45, 255));
+  linear_gradient.add_color_stop(0.0, Color::from_rgba(204, 82, 50, 255));
+  if let CanvasGradient::Linear(linear_gradient) = linear_gradient {
+    assert_eq!(linear_gradient.base.positions, vec![0.0, 0.3, 0.6, 1.0]);
+    assert_eq!(
+      linear_gradient.base.colors,
+      vec![
+        Color::from_rgba(204, 82, 50, 255),
+        Color::from_rgba(176, 199, 45, 255),
+        Color::from_rgba(0, 255, 255, 255),
+        Color::from_rgba(0, 128, 128, 255),
+      ]
+    );
+  } else {
+    unreachable!();
+  }
 }

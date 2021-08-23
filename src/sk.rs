@@ -1,6 +1,7 @@
 use std::convert::TryFrom;
 use std::f32::consts::PI;
 use std::ffi::{c_void, CStr, CString};
+use std::fmt;
 use std::ops::{Deref, DerefMut};
 use std::os::raw::c_char;
 use std::ptr;
@@ -1726,8 +1727,19 @@ impl<'a> DerefMut for SurfaceDataMut<'a> {
 }
 
 #[repr(C)]
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Eq, PartialEq, Hash, PartialOrd, Ord)]
 pub struct Color(pub u32);
+
+impl fmt::Debug for Color {
+  fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+    f.debug_struct("Color")
+      .field("R", &(((self.0) >> 16) & 0xFF))
+      .field("G", &(((self.0) >> 8) & 0xFF))
+      .field("B", &(((self.0) >> 0) & 0xFF))
+      .field("A", &(((self.0) >> 24) & 0xFF))
+      .finish()
+  }
+}
 
 impl Color {
   #[inline]
