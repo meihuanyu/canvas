@@ -342,6 +342,7 @@ impl Context {
       self.surface.restore();
       mem::drop(shadow_paint);
     }
+    println!("{:?}", self.surface.get_transform());
     self.surface.draw_path(p, &fill_paint);
     Ok(())
   }
@@ -692,7 +693,9 @@ fn begin_path(ctx: CallContext) -> Result<JsUndefined> {
   let this = ctx.this_unchecked::<JsObject>();
   let context_2d = ctx.env.unwrap::<Context>(&this)?;
 
-  let new_sub_path = Path::new();
+  let mut new_sub_path = Path::new();
+  let m = context_2d.surface.get_transform().invert().unwrap();
+  new_sub_path.transform(&m);
   mem::drop(mem::replace(&mut context_2d.path, new_sub_path));
 
   ctx.env.get_undefined()
@@ -1663,7 +1666,7 @@ fn translate(ctx: CallContext) -> Result<JsUndefined> {
 
   let mut inverted = Matrix::identity();
   inverted.pre_translate(-x as f32, -y as f32);
-  context_2d.path.transform_matrix(&inverted);
+  // context_2d.path.transform_matrix(&inverted);
   context_2d.surface.canvas.translate(x as f32, y as f32);
 
   ctx.env.get_undefined()
@@ -1685,7 +1688,7 @@ fn transform(ctx: CallContext) -> Result<JsUndefined> {
   let inverted = new_transform
     .invert()
     .ok_or_else(|| Error::new(Status::InvalidArg, "Invalid transform".to_owned()))?;
-  context_2d.path.transform(&inverted);
+  // context_2d.path.transform(&inverted);
   context_2d.surface.canvas.concat(new_transform);
   ctx.env.get_undefined()
 }

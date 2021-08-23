@@ -2837,7 +2837,7 @@ impl Transform {
       // Gx+Hy+I
       let denom = 1f32;
       // Ax+By+C
-      let x_trans = self.a * x + self.c * y + self.e;
+      let x_trans = self.a * x + self.c * y + self.c;
       // Dx+Ey+F
       let y_trans = self.b * x + self.d * y + self.f;
       pt_arr[i] = x_trans / denom;
