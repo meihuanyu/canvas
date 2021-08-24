@@ -127,7 +127,7 @@ impl CanvasGradient {
         let (x1, y1) = linear_gradient.start_point;
         let (x2, y2) = linear_gradient.end_point;
         let mut pt_arr: [f32; 4] = [x1, y1, x2, y2];
-        current_transform.map_points(&mut pt_arr);
+        // current_transform.map_points(&mut pt_arr);
         let sx1 = pt_arr[0];
         let sy1 = pt_arr[1];
         let sx2 = pt_arr[2];

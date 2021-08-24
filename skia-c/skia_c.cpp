@@ -652,6 +652,12 @@ extern "C"
     return reinterpret_cast<skiac_path *>(new_path);
   }
 
+  void skiac_path_swap(skiac_path *c_path, skiac_path *other_path)
+  {
+    auto other = reinterpret_cast<SkPath *>(other_path);
+    PATH_CAST->swap(*other);
+  }
+
   void skiac_add_path(skiac_path *c_path, skiac_path *other_path, skiac_transform c_transform)
   {
     auto path = PATH_CAST;

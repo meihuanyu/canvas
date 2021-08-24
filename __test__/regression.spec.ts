@@ -25,6 +25,7 @@ test('transform-with-state', async (t) => {
   ctx.lineTo(52.5, -38.5)
   ctx.lineTo(52.5, 38.5)
   ctx.lineTo(-52.5, 38.5)
+  ctx.lineTo(-52.5, -38.5)
   ctx.closePath()
   ctx.save()
   const p = ctx.createLinearGradient(0, 0, 0, 77)

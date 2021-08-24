@@ -302,6 +302,7 @@ extern "C"
   skiac_path *skiac_path_create();
   skiac_path *skiac_path_from_svg(char *svg_path);
   skiac_path *skiac_path_clone(skiac_path *c_path);
+  void skiac_path_swap(skiac_path *c_path, skiac_path *other_path);
   void skiac_add_path(skiac_path *c_path, skiac_path *other_path, skiac_transform c_transform);
   bool skiac_path_op(skiac_path *c_path_one, skiac_path *c_path_two, int op);
   void skiac_path_to_svg_string(skiac_path *c_path, skiac_string *c_string);

@@ -451,6 +451,8 @@ mod ffi {
 
     pub fn skiac_path_clone(path: *mut skiac_path) -> *mut skiac_path;
 
+    pub fn skiac_path_swap(path: *mut skiac_path, other: *mut skiac_path);
+
     pub fn skiac_add_path(
       c_path: *mut skiac_path,
       other_path: *mut skiac_path,
@@ -2257,6 +2259,11 @@ impl Path {
   }
 
   #[inline]
+  pub fn swap(&mut self, other: &mut Path) {
+    unsafe { ffi::skiac_path_swap(self.0, other.0) }
+  }
+
+  #[inline]
   pub fn from_svg_path(path: &str) -> Option<Path> {
     let path_str = CString::new(path).ok()?;
     let p = unsafe { ffi::skiac_path_from_svg(path_str.into_raw()) };
@@ -2825,8 +2832,8 @@ impl Transform {
   }
 
   #[inline]
-  /// | A B C |    | A/X B/X C/X |
-  /// | D E F | -> | D/X E/X F/X |   for X != 0
+  /// | A C E |    | A/X C/X E/X |
+  /// | B D F | -> | B/X D/X F/X |   for X != 0
   /// | 0 0 X |    |  0   0   1  |
   /// [interface.js](skia/modules/canvaskit/interface.js)
   pub fn map_points(&self, pt_arr: &mut [f32]) {
@@ -2835,13 +2842,13 @@ impl Transform {
       let x = pt_arr[i];
       let y = pt_arr[i + 1];
       // Gx+Hy+I
-      let denom = 1f32;
+      // let denom = 1f32;
       // Ax+By+C
-      let x_trans = self.a * x + self.c * y + self.c;
+      let x_trans = self.a * x + self.c * y + self.e;
       // Dx+Ey+F
       let y_trans = self.b * x + self.d * y + self.f;
-      pt_arr[i] = x_trans / denom;
-      pt_arr[i + 1] = y_trans / denom;
+      pt_arr[i] = x_trans; // x_trans / denom
+      pt_arr[i + 1] = y_trans; // y_trans / denom
       i += 2;
     }
   }
